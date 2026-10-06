@@ -406,14 +406,9 @@ tImp=d.reduce((a,r)=>a+r.展现量,0),tClk=d.reduce((a,r)=>a+r.点击量,0),
 tDA=d.reduce((a,r)=>a+r.直接成交金额,0),tDC=d.reduce((a,r)=>a+r.直接购物车数,0),tDO=d.reduce((a,r)=>a+r.直接成交笔数,0),
 tTC=d.reduce((a,r)=>a+r.总购物车数||0,0);
 const tFee=tSa?ts/tSa:0,tCtr=tImp?tClk/tImp:0,tCvr=tClk?tDO/tClk:0,tCartRate=tClk?tDC/tClk:0,tCpc=tClk?ts/tClk:0,tDRoi=ts?tDA/ts:0,tCC=tDC?ts/tDC:0;
-const uniqDates=[...new Set(D.model_daily.map(r=>r.日期str))].filter(d=>d>=gr().s&&d<=gr().e).sort();
+const uniqDates=[...new Set(D.daily.map(r=>r.日期str))].filter(d=>d>=gr().s&&d<=gr().e).sort();
 const pLen=uniqDates.length||1;const psPrev=addDays(gr().s,-pLen);
-let prevMD=D.model_daily.filter(r=>r.日期str>=psPrev&&r.日期str<gr().s);
-const sv=msSeries.vals(),sz=msSize.vals(),gm=msModel.vals();
-if(sv)prevMD=prevMD.filter(r=>sv.includes(r.统计));if(sz)prevMD=prevMD.filter(r=>sz.includes(r.尺寸));if(gm)prevMD=prevMD.filter(r=>gm.includes(r.型号));
-const pAgg={};prevMD.forEach(r=>{const k=r.日期str;if(!pAgg[k])pAgg[k]={花费:0,销售金额:0,销售数量:0,展现量:0,点击量:0,直接成交金额:0,直接购物车数:0,直接成交笔数:0,总购物车数:0};
-const a=pAgg[k];a.花费+=r.花费||0;a.销售金额+=r.销售金额||0;a.销售数量+=r.销售数量||0;a.展现量+=r.展现量||0;a.点击量+=r.点击量||0;a.直接成交金额+=r.直接成交金额||0;a.直接购物车数+=r.直接购物车数||0;a.直接成交笔数+=r.直接成交笔数||0;a.总购物车数+=r.总购物车数||0});
-const prevD=Object.values(pAgg);
+let prevD=D.daily.filter(r=>r.日期str>=psPrev&&r.日期str<gr().s);
 const pts=prevD.reduce((a,r)=>a+r.花费,0),pSa=prevD.reduce((a,r)=>a+r.销售金额,0),pSn=prevD.reduce((a,r)=>a+r.销售数量,0),
 pImp=prevD.reduce((a,r)=>a+r.展现量,0),pClk=prevD.reduce((a,r)=>a+r.点击量,0),
 pDA=prevD.reduce((a,r)=>a+r.直接成交金额,0),pDC=prevD.reduce((a,r)=>a+r.直接购物车数,0),pDO=prevD.reduce((a,r)=>a+r.直接成交笔数,0),
