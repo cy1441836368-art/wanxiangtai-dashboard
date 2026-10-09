@@ -398,22 +398,22 @@ function sortDaily(col){if(dSortCol===col){dSortDir=dSortDir==='desc'?'asc':'des
 document.querySelectorAll('#dtb').forEach(()=>{});uDaily()}
 
 function uDaily(){const{s,e}=gr();let d=filterDaily().map(r=>{const sp=r.花费||0,sa=r.销售金额||0,sq=r.销售数量||0,im=r.展现量||0,cl=r.点击量||0,dA=r.直接成交金额||0,dC=r.直接购物车数||0,dO=r.直接成交笔数||0,tA=r.总成交金额||0,tC=r.总购物车数||0;
-return{日期str:r.日期str,花费:sp,展现量:im,点击量:cl,费率:sa?sp/sa:0,销售金额:sa,销售数量:sq,CTR:im?cl/im:0,_cvr:cl?dO/cl:0,_cartRate:cl?dC/cl:0,_cpc:cl?sp/cl:0,直接ROI:sp?dA/sp:0,直接购物车数:dC,直接加购成本:dC?sp/dC:0,直接成交笔数:dO,直接成交金额:dA,_tRoi:sp?tA/sp:0,总购物车数:tC}});
+return{日期str:r.日期str,花费:sp,展现量:im,点击量:cl,费率:sa?sp/sa:0,销售金额:sa,销售数量:sq,CTR:im?cl/im:0,_cvr:cl?dO/cl:0,_cartRate:cl?dC/cl:0,_cpc:cl?sp/cl:0,直接ROI:sp?dA/sp:0,直接购物车数:dC,直接加购成本:dC?sp/dC:0,直接成交笔数:dO,直接成交金额:dA,_tRoi:sp?tA/sp:0,总成交金额:tA,总购物车数:tC}});
 const sk=DSORT_MAP[dSortCol]||'日期str';
 d.sort((a,b)=>{let va=a[sk]??0,vb=b[sk]??0;const isStr=typeof va==='string';let cmp=isStr?String(va).localeCompare(String(vb)):(va||0)-(vb||0);return dSortDir==='asc'?cmp:-cmp});
 const ts=d.reduce((a,r)=>a+r.花费,0),tSa=d.reduce((a,r)=>a+r.销售金额,0),tSn=d.reduce((a,r)=>a+r.销售数量,0),
 tImp=d.reduce((a,r)=>a+r.展现量,0),tClk=d.reduce((a,r)=>a+r.点击量,0),
 tDA=d.reduce((a,r)=>a+r.直接成交金额,0),tDC=d.reduce((a,r)=>a+r.直接购物车数,0),tDO=d.reduce((a,r)=>a+r.直接成交笔数,0),
-tTC=d.reduce((a,r)=>a+r.总购物车数||0,0);
-const tFee=tSa?ts/tSa:0,tCtr=tImp?tClk/tImp:0,tCvr=tClk?tDO/tClk:0,tCartRate=tClk?tDC/tClk:0,tCpc=tClk?ts/tClk:0,tDRoi=ts?tDA/ts:0,tCC=tDC?ts/tDC:0;
+tTA=d.reduce((a,r)=>a+r.总成交金额||0,0),tTC=d.reduce((a,r)=>a+r.总购物车数||0,0);
+const tFee=tSa?ts/tSa:0,tCtr=tImp?tClk/tImp:0,tCvr=tClk?tDO/tClk:0,tCartRate=tClk?tDC/tClk:0,tCpc=tClk?ts/tClk:0,tDRoi=ts?tDA/ts:0,tCC=tDC?ts/tDC:0,tTRoi=ts?tTA/ts:0;
 const uniqDates=[...new Set(D.daily.map(r=>r.日期str))].filter(d=>d>=gr().s&&d<=gr().e).sort();
 const pLen=uniqDates.length||1;const psPrev=addDays(gr().s,-pLen);
 let prevD=D.daily.filter(r=>r.日期str>=psPrev&&r.日期str<gr().s);
 const pts=prevD.reduce((a,r)=>a+r.花费,0),pSa=prevD.reduce((a,r)=>a+r.销售金额,0),pSn=prevD.reduce((a,r)=>a+r.销售数量,0),
 pImp=prevD.reduce((a,r)=>a+r.展现量,0),pClk=prevD.reduce((a,r)=>a+r.点击量,0),
 pDA=prevD.reduce((a,r)=>a+r.直接成交金额,0),pDC=prevD.reduce((a,r)=>a+r.直接购物车数,0),pDO=prevD.reduce((a,r)=>a+r.直接成交笔数,0),
-pTC=prevD.reduce((a,r)=>a+r.总购物车数||0,0);
-const pFee=pSa?pts/pSa:0,pCtr=pImp?pClk/pImp:0,pCvr=pClk?pDO/pClk:0,pCartRate=pClk?pDC/pClk:0,pCpc=pClk?pts/pClk:0,pDRoi=pts?pDA/pts:0,pCC=pDC?pts/pDC:0;
+pTA=prevD.reduce((a,r)=>a+r.总成交金额||0,0),pTC=prevD.reduce((a,r)=>a+r.总购物车数||0,0);
+const pFee=pSa?pts/pSa:0,pCtr=pImp?pClk/pImp:0,pCvr=pClk?pDO/pClk:0,pCartRate=pClk?pDC/pClk:0,pCpc=pClk?pts/pClk:0,pDRoi=pts?pDA/pts:0,pCC=pDC?pts/pDC:0,pTRoi=pts?pTA/pts:0;
 const hp=(cur,prev)=>{if(prev===0||prev==null)return '<span class="hp hp-flat">-</span>';const pct=(cur-prev)/Math.abs(prev)*100;const cls=pct>0.01?'hp-up':pct<-0.01?'hp-dn':'hp-flat';const sign=pct>0?'+':'';return '<span class="hp '+cls+'">'+sign+pct.toFixed(1)+'%</span>'};
 const hCell=(val,html,hpHtml)=>'<td><div class="hb"><div class="mv">'+html+'</div>'+hpHtml+'</div></td>';
 const totalRow='<tr class="total-row">'
@@ -431,6 +431,7 @@ const totalRow='<tr class="total-row">'
 +hCell(tCC,f(tCC,2),hp(tCC,pCC))
 +hCell(tDO,f(tDO),hp(tDO,pDO))
 +hCell(tDA,f(tDA),hp(tDA,pDA))
++hCell(tTRoi.toFixed(2),tTRoi.toFixed(2),hp(tTRoi,pTRoi))
 +hCell(tTC,f(tTC),hp(tTC,pTC))
 +'</tr>';
 $('dtb').innerHTML=totalRow+d.map(r=>'<tr><td>'+r.日期str+'</td><td>'+f(r.花费)+'</td><td>'+(r.费率*100).toFixed(2)+'%</td><td>'+f(r.销售金额)+'</td><td>'+f(r.销售数量)+'</td><td>'+p(r.CTR)+'</td><td>'+(r._cvr*100).toFixed(2)+'%</td><td>'+(r._cartRate*100).toFixed(2)+'%</td><td>'+r._cpc.toFixed(2)+'</td><td>'+r.直接ROI.toFixed(2)+'</td><td>'+f(r.直接购物车数)+'</td><td>'+f(r.直接加购成本,2)+'</td><td>'+f(r.直接成交笔数)+'</td><td>'+f(r.直接成交金额)+'</td><td>'+r._tRoi.toFixed(2)+'</td><td>'+f(r.总购物车数)+'</td></tr>').join('')}
