@@ -129,7 +129,7 @@ th.sortable.desc::after{content:"\25BC";opacity:1}
 <th class="sortable" data-col="直接成交笔数" onclick="sortTbl('直接成交笔数')">直接成交笔数</th>
 <th class="sortable" data-col="直接成交金额" onclick="sortTbl('直接成交金额')">直接成交金额</th>
 <th class="sortable" data-col="总ROI" onclick="sortTbl('总ROI')">总ROI</th>
-<th class="sortable" data-col="总加购成本" onclick="sortTbl('总购物车数')">总购物车数</th>
+<th class="sortable" data-col="总购物车数">总购物车数</th>
 </tr></thead><tbody id="tb"></tbody></table></div>
 </div>
 <div class="s" id="sec-daily"><div class="st">每日花费</div>
@@ -149,7 +149,7 @@ th.sortable.desc::after{content:"\25BC";opacity:1}
 <th class="sortable" data-col="直接成交笔数" onclick="sortDaily('直接成交笔数')">直接成交笔数</th>
 <th class="sortable" data-col="直接成交金额" onclick="sortDaily('直接成交金额')">直接成交金额</th>
 <th class="sortable" data-col="总ROI" onclick="sortDaily('总ROI')">总ROI</th>
-<th class="sortable" data-col="总加购成本" onclick="sortDaily('总购物车数')">总购物车数</th>
+<th class="sortable" data-col="总购物车数">总购物车数</th>
 </tr></thead><tbody id="dtb"></tbody></table></div>
 </div>
 <div class="s" id="sec-series"><div class="st">产品系列</div>
@@ -170,7 +170,7 @@ th.sortable.desc::after{content:"\25BC";opacity:1}
 <th class="sortable" data-col="直接成交笔数" onclick="sortSeries('直接成交笔数')">直接成交笔数</th>
 <th class="sortable" data-col="直接成交金额" onclick="sortSeries('直接成交金额')">直接成交金额</th>
 <th class="sortable" data-col="总ROI" onclick="sortSeries('总ROI')">总ROI</th>
-<th class="sortable" data-col="总加购成本" onclick="sortSeries('总购物车数')">总购物车数</th>
+<th class="sortable" data-col="总购物车数">总购物车数</th>
 </tr></thead><tbody id="stb"></tbody></table></div>
 </div>
 <div class="s" id="sec-tool"><div class="st">工具花费</div>
@@ -191,7 +191,7 @@ th.sortable.desc::after{content:"\25BC";opacity:1}
 <th class="sortable" data-col="直接成交笔数" onclick="sortTool('直接成交笔数')">直接成交笔数</th>
 <th class="sortable" data-col="直接成交金额" onclick="sortTool('直接成交金额')">直接成交金额</th>
 <th class="sortable" data-col="总ROI" onclick="sortTool('总ROI')">总ROI</th>
-<th class="sortable" data-col="总加购成本" onclick="sortTool('总购物车数')">总购物车数</th>
+<th class="sortable" data-col="总购物车数">总购物车数</th>
 </tr></thead><tbody id="ttb"></tbody></table></div>
 </div>
 <div class="s" id="sec-trend"><div class="st">每日趋势</div>
@@ -270,8 +270,8 @@ function filterDaily(){const{s,e}=gr(),sv=msSeries.vals(),sz=msSize.vals(),gm=ms
 let d=D.daily.filter(r=>r.日期str>=s&&r.日期str<=e);
 if(sv||sz||gm){let md=D.model_daily.filter(r=>r.日期str>=s&&r.日期str<=e);
 if(sv)md=md.filter(r=>sv.includes(r.统计));if(sz)md=md.filter(r=>sz.includes(r.尺寸));if(gm)md=md.filter(r=>gm.includes(r.型号));
-const agg={};md.forEach(r=>{if(!agg[r.日期str])agg[r.日期str]={日期str:r.日期str,花费:0,展现量:0,点击量:0,直接成交金额:0,直接购物车数:0,总成交笔数:0,总成交金额:0,销售数量:0,销售金额:0};
-const a=agg[r.日期str];a.花费+=r.花费||0;a.展现量+=r.展现量||0;a.点击量+=r.点击量||0;a.直接成交金额+=r.直接成交金额||0;a.直接购物车数+=r.直接购物车数||0;a.总成交笔数+=r.总成交笔数||0;a.总成交金额+=r.总成交金额||0;a.销售数量+=(r.销售数量||0);a.销售金额+=(r.销售金额||0)});
+const agg={};md.forEach(r=>{if(!agg[r.日期str])agg[r.日期str]={日期str:r.日期str,花费:0,展现量:0,点击量:0,直接成交金额:0,直接购物车数:0,总购物车数:0,总成交笔数:0,总成交金额:0,销售数量:0,销售金额:0};
+const a=agg[r.日期str];a.花费+=r.花费||0;a.展现量+=r.展现量||0;a.点击量+=r.点击量||0;a.直接成交金额+=r.直接成交金额||0;a.直接购物车数+=r.直接购物车数||0;a.总购物车数+=(r.总购物车数||0);a.总成交笔数+=r.总成交笔数||0;a.总成交金额+=r.总成交金额||0;a.销售数量+=(r.销售数量||0);a.销售金额+=(r.销售金额||0)});
 d=Object.values(agg).sort((a,b)=>a.日期str.localeCompare(b.日期str))}return d}
 
 function filterScene(){const{s,e}=gr(),sv=msSeries.vals(),sz=msSize.vals(),gm=msModel.vals();
