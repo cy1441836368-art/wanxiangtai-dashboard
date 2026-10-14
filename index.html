@@ -498,26 +498,29 @@ $('stb').innerHTML=totalRow+rows.map(r=>'<tr><td>'+r.统计+'</td><td>'+f(r.花�
 let tSortCol='花费',tSortDir='desc';
 const TSORT_MAP={'场景名字':'场景名字','花费':'花费','COST%':'_costPct','费率':'_fee','销售金额':'销售金额','销售数量':'销售数量','CTR':'_ctr','CPC':'_cpc','直接ROI':'_dRoi','直接购物车数':'直接购物车数','直接加购成本':'_cartCost','直接成交笔数':'直接成交笔数','直接成交金额':'直接成交金额','总ROI':'_tRoi','总购物车数':'总购物车数','直接CVR':'_cvr','直接加购率':'_cartRate'};
 function sortTool(col){if(tSortCol===col){tSortDir=tSortDir==='desc'?'asc':'desc'}else{tSortCol=col;tSortDir='desc'}uTool()}
-function uTool(){const{s,e}=gr();
-const skuScenes=['关键词推广','货品全站推广','人群推广'];
-const planScenes=['超级直播','线索推广','超级短视频'];
+function uTool(){const{s,e}=gr(),sv=msSeries.vals(),sz=msSize.vals(),gm=msModel.vals();
 
-// Aggregate from scene_sku_daily (has sales data)
-let skuData=D.scene_sku_daily.filter(r=>r.日期str>=s&&r.日期str<=e);
-const skuAgg={};skuData.forEach(r=>{const k=r.场景名字;if(!skuAgg[k])skuAgg[k]={场景名字:k,花费:0,展现量:0,点击量:0,直接成交笔数:0,直接成交金额:0,直接购物车数:0,总购物车数:0,总成交金额:0,销售金额:0,销售数量:0};
-const a=skuAgg[k];a.花费+=r.花费||0;a.展现量+=r.展现量||0;a.点击量+=r.点击量||0;a.直接成交笔数+=r.直接成交笔数||0;a.直接成交金额+=r.直接成交金额||0;a.直接购物车数+=r.直接购物车数||0;a.总购物车数+=r.总购物车数||0;a.总成交金额+=r.总成交金额||0;a.销售金额+=r.销售金额||0;a.销售数量+=r.销售数量||0});
+// Build scene mapping from model_scene_daily
+const msd=D.model_scene_daily.filter(r=>r.日期str>=s&&r.日期str<=e);
+const ss={};msd.forEach(r=>{const k=r.日期str+'|'+r.型号;if(!ss[k])ss[k]=[];ss[k].push({scene:r.场景名字,spend:r.花费||0})});
+Object.values(ss).forEach(arr=>{const total=arr.reduce((a,r)=>a+r.spend,0);arr.forEach(r=>r.ratio=total?r.spend/total:1/arr.length)});
 
-// Aggregate from scene_daily (plan source, no sales)
+// Filter model_daily by date/series/size/model
+let md=D.model_daily.filter(r=>r.日期str>=s&&r.日期str<=e);
+if(sv)md=md.filter(r=>sv.includes(r.统计));if(sz)md=md.filter(r=>sz.includes(r.尺寸));if(gm)md=md.filter(r=>gm.includes(r.型号));
+
+// Aggregate sku scenes from model_daily via scene mapping
+const agg={};
+md.forEach(r=>{const k=r.日期str+'|'+r.型号;const scenes=ss[k]||[];
+scenes.forEach(({scene,ratio})=>{if(!agg[scene])agg[scene]={场景名字:scene,花费:0,展现量:0,点击量:0,直接成交笔数:0,直接成交金额:0,直接购物车数:0,总购物车数:0,总成交金额:0,销售金额:0,销售数量:0,_hasSales:true};
+const a=agg[scene];a.花费+=(r.花费||0)*ratio;a.展现量+=(r.展现量||0)*ratio;a.点击量+=(r.点击量||0)*ratio;a.直接成交笔数+=(r.直接成交笔数||0)*ratio;a.直接成交金额+=(r.直接成交金额||0)*ratio;a.直接购物车数+=(r.直接购物车数||0)*ratio;a.总购物车数+=(r.总购物车数||0)*ratio;a.总成交金额+=(r.总成交金额||0)*ratio;a.销售金额+=(r.销售金额||0)*ratio;a.销售数量+=(r.销售数量||0)*ratio})});
+
+// Add plan-only scenes (no series/size filter)
 let planData=D.scene_daily.filter(r=>r.日期str>=s&&r.日期str<=e);
-const planAgg={};planData.forEach(r=>{const k=r.场景名字;if(!planAgg[k])planAgg[k]={场景名字:k,花费:0,展现量:0,点击量:0,直接成交笔数:0,直接成交金额:0,直接购物车数:0,总购物车数:0,总成交金额:0};
-const a=planAgg[k];a.花费+=r.花费||0;a.展现量+=r.展现量||0;a.点击量+=r.点击量||0;a.直接成交笔数+=r.直接成交笔数||0;a.直接成交金额+=r.直接成交金额||0;a.直接购物车数+=r.直接购物车数||0;a.总购物车数+=r.总购物车数||0;a.总成交金额+=r.总成交金额||0});
+planData.forEach(r=>{const k=r.场景名字;if(!agg[k])agg[k]={场景名字:k,花费:0,展现量:0,点击量:0,直接成交笔数:0,直接成交金额:0,直接购物车数:0,总购物车数:0,总成交金额:0,销售金额:0,销售数量:0,_hasSales:false};
+const a=agg[k];a.花费+=r.花费||0;a.展现量+=r.展现量||0;a.点击量+=r.点击量||0;a.直接成交笔数+=r.直接成交笔数||0;a.直接成交金额+=r.直接成交金额||0;a.直接购物车数+=r.直接购物车数||0;a.总购物车数+=r.总购物车数||0;a.总成交金额+=r.总成交金额||0});
 
-// Merge: sku scenes + plan-only scenes
-const merged={};
-for(const[k,v] of Object.entries(skuAgg)){merged[k]={...v,_hasSales:true}}
-for(const[k,v] of Object.entries(planAgg)){if(!merged[k])merged[k]={...v,销售金额:0,销售数量:0,_hasSales:false}}
-
-let rows=Object.values(merged).map(r=>{const sp=r.花费,im=r.展现量,cl=r.点击量,dA=r.直接成交金额,dC=r.直接购物车数,dO=r.直接成交笔数,tA=r.总成交金额,tC=r.总购物车数||0,sa=r.销售金额||0;
+let rows=Object.values(agg).map(r=>{const sp=r.花费,im=r.展现量,cl=r.点击量,dA=r.直接成交金额,dC=r.直接购物车数,dO=r.直接成交笔数,tA=r.总成交金额,tC=r.总购物车数||0,sa=r.销售金额||0;
 return{...r,_costPct:0,_fee:sa?sp/sa:0,CTR:im?cl/im:0,_cvr:cl?dO/cl:0,_cartRate:cl?dC/cl:0,_cpc:cl?sp/cl:0,直接ROI:sp?dA/sp:0,直接加购成本:dC?sp/dC:0,_tRoi:sp?tA/sp:0}});
 const ts=rows.reduce((a,r)=>a+r.花费,0);rows.forEach(r=>r._costPct=ts?r.花费/ts:0);
 const sk=TSORT_MAP[tSortCol]||'花费';
@@ -531,19 +534,22 @@ const tFee=tSa?ts/tSa:0,tCtr=tImp?tClk/tImp:0,tCvr=tClk?tDO/tClk:0,tCartRate=tCl
 
 const hp=(c,pv)=>{if(pv===0||pv==null)return '<span class="hp hp-flat">-</span>';const pct=(c-pv)/Math.abs(pv)*100;const cls=pct>0.01?'hp-up':pct<-0.01?'hp-dn':'hp-flat';return '<span class="hp '+cls+'">'+(pct>0?'+':'')+pct.toFixed(1)+'%</span>'};
 const hC=(v,h,p)=>'<td><div class="hb"><div class="mv">'+h+'</div>'+p+'</div></td>';
-const dash='<span class="hp hp-flat">-</span>';
 
 // Previous period
-const uniqD=[...new Set(D.scene_daily.map(r=>r.日期str))].filter(d=>d>=s&&d<=e).sort();
+const uniqD=[...new Set(D.model_daily.map(r=>r.日期str))].filter(d=>d>=s&&d<=e).sort();
 const pLen=uniqD.length||1,psP=addDays(s,-pLen);
-let pSku=D.scene_sku_daily.filter(r=>r.日期str>=psP&&r.日期str<s);
+let pMd=D.model_daily.filter(r=>r.日期str>=psP&&r.日期str<s);
+if(sv)pMd=pMd.filter(r=>sv.includes(r.统计));if(sz)pMd=pMd.filter(r=>sz.includes(r.尺寸));if(gm)pMd=pMd.filter(r=>gm.includes(r.型号));
+let pMsD=D.model_scene_daily.filter(r=>r.日期str>=psP&&r.日期str<s);
+const pSS={};pMsD.forEach(r=>{const k=r.日期str+'|'+r.型号;if(!pSS[k])pSS[k]=[];pSS[k].push({scene:r.场景名字,spend:r.花费||0})});
+Object.values(pSS).forEach(arr=>{const total=arr.reduce((a,r)=>a+r.spend,0);arr.forEach(r=>r.ratio=total?r.spend/total:1/arr.length)});
+const pAgg={};pMd.forEach(r=>{const k=r.日期str+'|'+r.型号;const scenes=pSS[k]||[];
+scenes.forEach(({scene,ratio})=>{if(!pAgg[scene])pAgg[scene]={花费:0,展现量:0,点击量:0,直接成交笔数:0,直接成交金额:0,直接购物车数:0,总购物车数:0,总成交金额:0,销售金额:0,销售数量:0};
+const a=pAgg[scene];a.花费+=(r.花费||0)*ratio;a.展现量+=(r.展现量||0)*ratio;a.点击量+=(r.点击量||0)*ratio;a.直接成交笔数+=(r.直接成交笔数||0)*ratio;a.直接成交金额+=(r.直接成交金额||0)*ratio;a.直接购物车数+=(r.直接购物车数||0)*ratio;a.总购物车数+=(r.总购物车数||0)*ratio;a.总成交金额+=(r.总成交金额||0)*ratio;a.销售金额+=(r.销售金额||0)*ratio;a.销售数量+=(r.销售数量||0)*ratio})});
 let pPlan=D.scene_daily.filter(r=>r.日期str>=psP&&r.日期str<s);
-const pSkuAgg={};pSku.forEach(r=>{const k=r.场景名字;if(!pSkuAgg[k])pSkuAgg[k]={花费:0,展现量:0,点击量:0,直接成交笔数:0,直接成交金额:0,直接购物车数:0,总购物车数:0,总成交金额:0,销售金额:0,销售数量:0};
-const a=pSkuAgg[k];a.花费+=r.花费||0;a.展现量+=r.展现量||0;a.点击量+=r.点击量||0;a.直接成交笔数+=r.直接成交笔数||0;a.直接成交金额+=r.直接成交金额||0;a.直接购物车数+=r.直接购物车数||0;a.总购物车数+=r.总购物车数||0;a.总成交金额+=r.总成交金额||0;a.销售金额+=r.销售金额||0;a.销售数量+=r.销售数量||0});
-const pPlanAgg={};pPlan.forEach(r=>{const k=r.场景名字;if(!pPlanAgg[k])pPlanAgg[k]={花费:0,展现量:0,点击量:0,直接成交笔数:0,直接成交金额:0,直接购物车数:0,总购物车数:0,总成交金额:0};
-const a=pPlanAgg[k];a.花费+=r.花费||0;a.展现量+=r.展现量||0;a.点击量+=r.点击量||0;a.直接成交笔数+=r.直接成交笔数||0;a.直接成交金额+=r.直接成交金额||0;a.直接购物车数+=r.直接购物车数||0;a.总购物车数+=r.总购物车数||0;a.总成交金额+=r.总成交金额||0});
-const pMerged={};for(const[k,v] of Object.entries(pSkuAgg))pMerged[k]=v;for(const[k,v] of Object.entries(pPlanAgg))if(!pMerged[k])pMerged[k]={...v,销售金额:0,销售数量:0};
-const pAll=Object.values(pMerged);const pts=pAll.reduce((a,r)=>a+r.花费,0),
+pPlan.forEach(r=>{const k=r.场景名字;if(!pAgg[k])pAgg[k]={花费:0,展现量:0,点击量:0,直接成交笔数:0,直接成交金额:0,直接购物车数:0,总购物车数:0,总成交金额:0,销售金额:0,销售数量:0};
+const a=pAgg[k];a.花费+=r.花费||0;a.展现量+=r.展现量||0;a.点击量+=r.点击量||0;a.直接成交笔数+=r.直接成交笔数||0;a.直接成交金额+=r.直接成交金额||0;a.直接购物车数+=r.直接购物车数||0;a.总购物车数+=r.总购物车数||0;a.总成交金额+=r.总成交金额||0});
+const pAll=Object.values(pAgg);const pts=pAll.reduce((a,r)=>a+r.花费,0),
 pImp=pAll.reduce((a,r)=>a+r.展现量,0),pClk=pAll.reduce((a,r)=>a+r.点击量,0),
 pDA=pAll.reduce((a,r)=>a+r.直接成交金额,0),pDC=pAll.reduce((a,r)=>a+r.直接购物车数,0),pDO=pAll.reduce((a,r)=>a+r.直接成交笔数,0),
 pTA=pAll.reduce((a,r)=>a+r.总成交金额,0),pTC=pAll.reduce((a,r)=>a+r.总购物车数||0,0),pSa=pAll.reduce((a,r)=>a+(r.销售金额||0),0),pSn=pAll.reduce((a,r)=>a+(r.销售数量||0),0);
@@ -560,114 +566,7 @@ const snCell=hasSales?'<td>'+f(r.销售数量||0)+'</td>':'<td>-</td>';
 return '<tr><td>'+r.场景名字+'</td><td>'+f(sp)+'</td><td>'+(r._costPct*100).toFixed(1)+'%</td>'+feeCell+saCell+snCell
 +'<td>'+p(r.CTR)+'</td><td>'+(cvr*100).toFixed(2)+'%</td><td>'+(cartRate*100).toFixed(2)+'%</td><td>'+cpc.toFixed(2)+'</td><td>'+dRoi.toFixed(2)+'</td><td>'+f(dC)+'</td><td>'+f(cartCost,2)+'</td><td>'+f(dO)+'</td><td>'+f(dA)+'</td><td>'+tRoi.toFixed(2)+'</td><td>'+f(tC)+'</td></tr>'}).join('')}
 
-
-
-
-function uInfo(){const sv=msSeries.vals(),sz=msSize.vals(),gm=msModel.vals();let pp=[];
-pp.push(sv?sv.join(','):'全部系列');pp.push(sz?sz.join(','):'全部尺寸');pp.push(gm?gm.join(','):'全部型号');
-$('filterInfo').textContent='当前筛选：'+pp.join(' · ')}
-
-function downloadExcel(){
-const wb=XLSX.utils.book_new();
-const{ s,e}=gr();
-const fmt=(v,d)=>v==null||isNaN(v)?'':typeof v==='string'?v:Number(v.toFixed(d||0));
-const pct=(v)=>v==null||isNaN(v)?'':(v*100).toFixed(2)+'%';
-const hpStr=(cur,prev)=>{if(!prev||prev===0)return '-';const pct=(cur-prev)/Math.abs(prev)*100;return (pct>0?'+':'')+pct.toFixed(1)+'%'};
-const addDays=(ds,n)=>{const[y,m,d]=ds.split('-').map(Number);const dt=new Date(y,m-1,d+n);return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0')};
-const uniqDates=[...new Set(D.model_daily.map(r=>r.日期str))].filter(d=>d>=s&&d<=e).sort();
-const pLen=uniqDates.length||1;const psPrev=addDays(s,-pLen);
-
-// Helper: get previous period filtered model_daily
-function getPrevModels(){let pm=D.model_daily.filter(r=>r.日期str>=psPrev&&r.日期str<s);
-const sv=msSeries.vals(),sz=msSize.vals(),gm=msModel.vals();
-if(sv)pm=pm.filter(r=>sv.includes(r.统计));if(sz)pm=pm.filter(r=>sz.includes(r.尺寸));if(gm)pm=pm.filter(r=>gm.includes(r.型号));return pm}
-function getPrevDaily(){let pm=D.model_daily.filter(r=>r.日期str>=psPrev&&r.日期str<s);
-const sv=msSeries.vals(),sz=msSize.vals(),gm=msModel.vals();
-if(sv)pm=pm.filter(r=>sv.includes(r.统计));if(sz)pm=pm.filter(r=>sz.includes(r.尺寸));if(gm)pm=pm.filter(r=>gm.includes(r.型号));
-const agg={};pm.forEach(r=>{const k=r.日期str;if(!agg[k])agg[k]={花费:0,展现量:0,点击量:0,直接成交笔数:0,直接成交金额:0,直接购物车数:0,总购物车数:0,总成交金额:0,销售数量:0,销售金额:0};
-const a=agg[k];a.花费+=r.花费||0;a.展现量+=r.展现量||0;a.点击量+=r.点击量||0;a.直接成交笔数+=r.直接成交笔数||0;a.直接成交金额+=r.直接成交金额||0;a.直接购物车数+=r.直接购物车数||0;a.总购物车数+=r.总购物车数||0;a.总成交金额+=r.总成交金额||0;a.销售数量+=r.销售数量||0;a.销售金额+=r.销售金额||0});
-return Object.values(agg)}
-
-// 1. 数据总览
-const fd=filterDaily();
-const ts=fd.reduce((a,r)=>a+(r.花费||0),0),sa=fd.reduce((a,r)=>a+(r.销售金额||0),0),sq=fd.reduce((a,r)=>a+(r.销售数量||0),0),
-dA=fd.reduce((a,r)=>a+(r.直接成交金额||0),0),dC=fd.reduce((a,r)=>a+(r.直接购物车数||0),0);
-const pfd=getPrevDaily();const pts=pfd.reduce((a,r)=>a+(r.花费||0),0),psa=pfd.reduce((a,r)=>a+(r.销售金额||0),0),psq=pfd.reduce((a,r)=>a+(r.销售数量||0),0),
-pdA=pfd.reduce((a,r)=>a+(r.直接成交金额||0),0),pdC=pfd.reduce((a,r)=>a+(r.直接购物车数||0),0);
-const kpiData=[['指标','数值','环比','说明'],
-['广告花费',fmt(ts),hpStr(ts,pts),'日均'+fmt(ts/(fd.length||1))],
-['费率',pct(sa?ts/sa:0)+'%',hpStr(sa?ts/sa:0,psa?pts/psa:0),'花费÷出库金额'],
-['出库金额',fmt(sa),hpStr(sa,psa),fmt(sq)+'台'],
-['直接加购成本',fmt(dC?ts/dC:0,2),hpStr(dC?ts/dC:0,pdC?pts/pdC:0),dC+'次加购'],
-['直接ROI',fmt(dA/ts||0,2),hpStr(dA/ts||0,pdA/pts||0),'直接成交'+fmt(dA)]];
-XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(kpiData),'数据总览');
-
-// Helper: compute totals and 环比 for a set of rows
-function compTotals(rows,pRows){
-const t=(f)=>rows.reduce((a,r)=>a+(r[f]||0),0);
-const pt=(f)=>pRows.reduce((a,r)=>a+(r[f]||0),0);
-const ts=t('花费'),sa=t('销售金额'),sq=t('销售数量'),im=t('展现量'),cl=t('点击量'),
-dA=t('直接成交金额'),dC=t('直接购物车数'),dO=t('直接成交笔数'),tA=t('总成交金额'),tC=t('总购物车数')||0;
-const pts=pt('花费'),psa=pt('销售金额'),psq=pt('销售数量'),pim=pt('展现量'),pcl=pt('点击量'),
-pdA=pt('直接成交金额'),pdC=pt('直接购物车数'),pDO=pt('直接成交笔数'),ptA=pt('总成交金额'),ptC=pt('总购物车数')||0;
-return{ts,sa,sq,im,cl,dA,dC,dO,tA,tC,pts,psa,psq,pim,pcl,pdA,pdC,pDO,ptA,ptC,
-tFee:sa?ts/sa:0,tCtr:im?cl/im:0,tCpc:cl?ts/cl:0,tDRoi:ts?dA/ts:0,tCC:dC?ts/dC:0,tTRoi:ts?tA/ts:0,tTCC:tC?ts/tC:0,
-pFee:psa?pts/psa:0,pCtr:pim?pcl/pim:0,pCpc:pcl?pts/pcl:0,pDRoi:pts?pdA/pts:0,pCC:pdC?pts/pdC:0,pTRoi:pts?ptA/pts:0,pTCC:ptC?pts/ptC:0}}
-
-// 2. 产品型号明细
-const models=filterModels();const pModels=getPrevModels();
-const mAgg={};pModels.forEach(r=>{if(!mAgg[r.型号])mAgg[r.型号]={花费:0,展现量:0,点击量:0,直接成交笔数:0,直接成交金额:0,直接购物车数:0,总购物车数:0,总成交金额:0,销售数量:0,销售金额:0};
-const a=mAgg[r.型号];a.花费+=r.花费||0;a.展现量+=r.展现量||0;a.点击量+=r.点击量||0;a.直接成交笔数+=r.直接成交笔数||0;a.直接成交金额+=r.直接成交金额||0;a.直接购物车数+=r.直接购物车数||0;a.总购物车数+=r.总购物车数||0;a.总成交金额+=r.总成交金额||0;a.销售数量+=r.销售数量||0;a.销售金额+=r.销售金额||0});
-const mHeader=['型号','系列','尺寸','花费','费率','出库金额','出库数','CTR','CPC','直接ROI','直接购物车数','直接加购成本','直接成交笔数','直接成交金额','总ROI','总加购成本','总成交金额'];
-const mTotal=['合计','-','-',fmt(compTotals(models,pModels).ts),pct(compTotals(models,pModels).tFee),fmt(compTotals(models,pModels).sa),fmt(compTotals(models,pModels).sq),pct(compTotals(models,pModels).tCtr),fmt(compTotals(models,pModels).tCpc,2),fmt(compTotals(models,pModels).tDRoi,2),fmt(compTotals(models,pModels).dC),fmt(compTotals(models,pModels).tCC,2),fmt(compTotals(models,pModels).dO),fmt(compTotals(models,pModels).dA),fmt(compTotals(models,pModels).tTRoi,2),fmt(compTotals(models,pModels).tTCC,2),fmt(compTotals(models,pModels).tA)];
-const mt=compTotals(models,pModels);
-const mHp=['环比','-','-',hpStr(mt.ts,mt.pts),hpStr(mt.tFee,mt.pFee),hpStr(mt.sa,mt.psa),hpStr(mt.sq,mt.psq),hpStr(mt.tCtr,mt.pCtr),hpStr(mt.tCpc,mt.pCpc),hpStr(mt.tDRoi,mt.pDRoi),hpStr(mt.dC,mt.pdC),hpStr(mt.tCC,mt.pCC),hpStr(mt.dO,mt.pDO),hpStr(mt.dA,mt.pdA),hpStr(mt.tTRoi,mt.pTRoi),hpStr(mt.tTCC,mt.pTCC),hpStr(mt.tA,mt.ptA)];
-const mData=models.map(r=>{const sp=r.花费||0,im=r.展现量||0,cl=r.点击量||0,d=r.直接成交金额||0,dc=r.直接购物车数||0,sa=r.销售金额||0,sq=r.销售数量||0,tA=r.总成交金额||0,tC=r.总购物车数||0;
-return[r.型号,r.统计,r.尺寸,fmt(sp),pct(sa?sp/sa:0),fmt(sa),fmt(sq),pct(im?cl/im:0),fmt(cl?sp/cl:0,2),fmt(sp?d/sp:0,2),fmt(dc),fmt(dc?sp/dc:0,2),fmt(r.直接成交笔数||0),fmt(d),fmt(sp?tA/sp:0,2),fmt(tC?sp/tC:0,2),fmt(tA)]});
-XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([mHeader,mTotal,mHp,...mData]),'产品型号明细');
-
-// 3. 每日花费
-const daily=filterDaily().map(r=>{const sp=r.花费||0,sa=r.销售金额||0,sq=r.销售数量||0,im=r.展现量||0,cl=r.点击量||0,dA=r.直接成交金额||0,dC=r.直接购物车数||0,dO=r.直接成交笔数||0,tA=r.总成交金额||0,tC=r.总购物车数||0;
-return{日期str:r.日期str,花费:sp,展现量:im,点击量:cl,费率:sa?sp/sa:0,销售金额:sa,销售数量:sq,CTR:im?cl/im:0,CPC:cl?sp/cl:0,直接ROI:sp?dA/sp:0,直接购物车数:dC,直接加购成本:dC?sp/dC:0,直接成交笔数:dO,直接成交金额:dA,总ROI:sp?tA/sp:0,总加购成本:tC?sp/tC:0,总成交金额:tA,totalC:tC}});
-const pdaily=getPrevDaily().map(r=>{const sp=r.花费||0,sa=r.销售金额||0,sq=r.销售数量||0,im=r.展现量||0,cl=r.点击量||0,dA=r.直接成交金额||0,dC=r.直接购物车数||0,dO=r.直接成交笔数||0,tA=r.总成交金额||0,tC=r.总购物车数||0;
-return{花费:sp,展现量:im,点击量:cl,费率:sa?sp/sa:0,销售金额:sa,销售数量:sq,CTR:im?cl/im:0,CPC:cl?sp/cl:0,直接ROI:sp?dA/sp:0,直接购物车数:dC,直接加购成本:dC?sp/dC:0,直接成交笔数:dO,直接成交金额:dA,总ROI:sp?tA/sp:0,总加购成本:tC?sp/tC:0,总成交金额:tA}});
-const dHeader=['日期','花费','费率','出库金额','出库数','CTR','CPC','直接ROI','直接购物车数','直接加购成本','直接成交笔数','直接成交金额','总ROI','总加购成本','总成交金额'];
-const dt=compTotals(daily,pdaily);
-const dTotal=['合计',fmt(dt.ts),pct(dt.tFee),fmt(dt.sa),fmt(dt.sq),pct(dt.tCtr),fmt(dt.tCpc,2),fmt(dt.tDRoi,2),fmt(dt.dC),fmt(dt.tCC,2),fmt(dt.dO),fmt(dt.dA),fmt(dt.tTRoi,2),fmt(dt.tTCC,2),fmt(dt.tA)];
-const dHp=['环比',hpStr(dt.ts,dt.pts),hpStr(dt.tFee,dt.pFee),hpStr(dt.sa,dt.psa),hpStr(dt.sq,dt.psq),hpStr(dt.tCtr,dt.pCtr),hpStr(dt.tCpc,dt.pCpc),hpStr(dt.tDRoi,dt.pDRoi),hpStr(dt.dC,dt.pdC),hpStr(dt.tCC,dt.pCC),hpStr(dt.dO,dt.pDO),hpStr(dt.dA,dt.pdA),hpStr(dt.tTRoi,dt.pTRoi),hpStr(dt.tTCC,dt.pTCC),hpStr(dt.tA,dt.ptA)];
-const dData=daily.map(r=>[r.日期str,fmt(r.花费),pct(r.费率),fmt(r.销售金额),fmt(r.销售数量),pct(r.CTR),fmt(r.CPC,2),fmt(r.直接ROI,2),fmt(r.直接购物车数),fmt(r.直接加购成本,2),fmt(r.直接成交笔数),fmt(r.直接成交金额),fmt(r.总ROI,2),fmt(r.总加购成本,2),fmt(r.总成交金额)]);
-XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([dHeader,dTotal,dHp,...dData]),'每日花费');
-
-// 4. 产品系列
-const fm=filterModels();const pfm=getPrevModels();
-const sAgg={};fm.forEach(r=>{const k=r.统计;if(!sAgg[k])sAgg[k]={统计:k,花费:0,展现量:0,点击量:0,直接成交笔数:0,直接成交金额:0,直接购物车数:0,总购物车数:0,总成交金额:0,销售数量:0,销售金额:0};
-const a=sAgg[k];a.花费+=r.花费||0;a.展现量+=r.展现量||0;a.点击量+=r.点击量||0;a.直接成交笔数+=r.直接成交笔数||0;a.直接成交金额+=r.直接成交金额||0;a.直接购物车数+=r.直接购物车数||0;a.总购物车数+=r.总购物车数||0;a.总成交金额+=r.总成交金额||0;a.销售数量+=r.销售数量||0;a.销售金额+=r.销售金额||0});
-const psAgg={};pfm.forEach(r=>{const k=r.统计;if(!psAgg[k])psAgg[k]={统计:k,花费:0,展现量:0,点击量:0,直接成交笔数:0,直接成交金额:0,直接购物车数:0,总购物车数:0,总成交金额:0,销售数量:0,销售金额:0};
-const a=psAgg[k];a.花费+=r.花费||0;a.展现量+=r.展现量||0;a.点击量+=r.点击量||0;a.直接成交笔数+=r.直接成交笔数||0;a.直接成交金额+=r.直接成交金额||0;a.直接购物车数+=r.直接购物车数||0;a.总购物车数+=r.总购物车数||0;a.总成交金额+=r.总成交金额||0;a.销售数量+=r.销售数量||0;a.销售金额+=r.销售金额||0});
-const sRows=Object.values(sAgg);const sTs=sRows.reduce((a,r)=>a+r.花费,0);
-const sHeader=['系列','花费','COST%','费率','出库金额','出库数','CTR','CPC','直接ROI','直接购物车数','直接加购成本','直接成交笔数','直接成交金额','总ROI','总加购成本','总成交金额'];
-const st=compTotals(sRows,Object.values(psAgg));
-const sTotal=['合计',fmt(st.ts),'100%',pct(st.tFee),fmt(st.sa),fmt(st.sq),pct(st.tCtr),fmt(st.tCpc,2),fmt(st.tDRoi,2),fmt(st.dC),fmt(st.tCC,2),fmt(st.dO),fmt(st.dA),fmt(st.tTRoi,2),fmt(st.tTCC,2),fmt(st.tA)];
-const sHp=['环比',hpStr(st.ts,st.pts),'-',hpStr(st.tFee,st.pFee),hpStr(st.sa,st.psa),hpStr(st.sq,st.psq),hpStr(st.tCtr,st.pCtr),hpStr(st.tCpc,st.pCpc),hpStr(st.tDRoi,st.pDRoi),hpStr(st.dC,st.pdC),hpStr(st.tCC,st.pCC),hpStr(st.dO,st.pDO),hpStr(st.dA,st.pdA),hpStr(st.tTRoi,st.pTRoi),hpStr(st.tTCC,st.pTCC),hpStr(st.tA,st.ptA)];
-const sData=sRows.map(r=>{const sp=r.花费,sa=r.销售金额,sq=r.销售数量,im=r.展现量,cl=r.点击量,dA=r.直接成交金额,dC=r.直接购物车数,dO=r.直接成交笔数,tA=r.总成交金额,tC=r.总购物车数||0;
-return[r.统计,fmt(sp),pct(sTs?sp/sTs:0),pct(sa?sp/sa:0),fmt(sa),fmt(sq),pct(im?cl/im:0),fmt(cl?sp/cl:0,2),fmt(sp?dA/sp:0,2),fmt(dC),fmt(dC?sp/dC:0,2),fmt(dO),fmt(dA),fmt(sp?tA/sp:0,2),fmt(tC?sp/tC:0,2),fmt(tA)]});
-XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([sHeader,sTotal,sHp,...sData]),'产品系列');
-
-// 5. 工具花费
-const tHeader=['场景','花费','COST%','费率','出库金额','出库数','CTR','CPC','直接ROI','直接购物车数','直接加购成本','直接成交笔数','直接成交金额','总ROI','总加购成本','总成交金额'];
-const tbEl=document.getElementById('ttb');
-if(tbEl){const tRows=tbEl.querySelectorAll('tr:not(.total-row)');const tData=[];
-tRows.forEach(tr=>{const cells=tr.querySelectorAll('td');if(cells.length>=15){const r=[];cells.forEach(td=>{const mv=td.querySelector('.mv');r.push(mv?mv.textContent.trim():td.textContent.trim())});tData.push(r)}});
-const totalTr=tbEl.querySelector('.total-row');const totalData=['合计'];if(totalTr){totalTr.querySelectorAll('td:not(:first-child)').forEach(td=>{const mv=td.querySelector('.mv');totalData.push(mv?mv.textContent.trim():td.textContent.trim())})};
-const hpTr=tbEl.querySelectorAll('.total-row');let hpData=['环比'];
-if(hpTr.length>0){hpTr[0].querySelectorAll('td:not(:first-child)').forEach(td=>{const hp=td.querySelector('.hp');hpData.push(hp?hp.textContent.trim():'-')})};
-XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([tHeader,totalData,hpData,...tData]),'工具花费')}
-
-const dateStr=s+'_'+e;
-XLSX.writeFile(wb,'天猫集团店数据看板_'+dateStr+'.xlsx')}
-
-
-function ua(){uInfo();uK();uTbl();uDaily();uSeries();uTool();uT();uSt();uMt()}
+// Scroll spy for sidebar
 const sidebarLinks=document.querySelectorAll('.sidebar a[data-sec]');
 const sections=[];sidebarLinks.forEach(a=>{const s=document.getElementById(a.dataset.sec);if(s)sections.push({el:s,link:a})});
 let navLock=false,navTimer=null;
@@ -676,7 +575,6 @@ for(let i=sections.length-1;i>=0;i--){if(sections[i].el.offsetTop<=top){active=s
 sidebarLinks.forEach(a=>a.classList.remove('on'));if(active)active.classList.add('on')},{passive:true});
 sidebarLinks.forEach(a=>a.addEventListener('click',e=>{e.preventDefault();const s=document.getElementById(a.dataset.sec);if(s){sidebarLinks.forEach(l=>l.classList.remove('on'));a.classList.add('on');clearTimeout(navTimer);navLock=true;const hd=document.querySelector('.hd');const hh=hd?hd.offsetHeight:100;window.scrollTo({top:s.offsetTop-hh-8,behavior:'smooth'});navTimer=setTimeout(()=>{navLock=false},800)}}));
 
-ua();
 </script>
 </body>
 </html>
