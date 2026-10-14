@@ -566,6 +566,13 @@ const snCell=hasSales?'<td>'+f(r.销售数量||0)+'</td>':'<td>-</td>';
 return '<tr><td>'+r.场景名字+'</td><td>'+f(sp)+'</td><td>'+(r._costPct*100).toFixed(1)+'%</td>'+feeCell+saCell+snCell
 +'<td>'+p(r.CTR)+'</td><td>'+(cvr*100).toFixed(2)+'%</td><td>'+(cartRate*100).toFixed(2)+'%</td><td>'+cpc.toFixed(2)+'</td><td>'+dRoi.toFixed(2)+'</td><td>'+f(dC)+'</td><td>'+f(cartCost,2)+'</td><td>'+f(dO)+'</td><td>'+f(dA)+'</td><td>'+tRoi.toFixed(2)+'</td><td>'+f(tC)+'</td></tr>'}).join('')}
 
+
+function uInfo(){const sv=msSeries.vals(),sz=msSize.vals(),gm=msModel.vals();let pp=[];
+pp.push(sv?sv.join(','):'全部系列');pp.push(sz?sz.join(','):'全部尺寸');pp.push(gm?gm.join(','):'全部型号');
+$('filterInfo').textContent='当前筛选：'+pp.join(' \u00b7 ')}
+
+function ua(){uInfo();uK();uTbl();uDaily();uSeries();uTool();uT();uSt();uMt()}
+
 // Scroll spy for sidebar
 const sidebarLinks=document.querySelectorAll('.sidebar a[data-sec]');
 const sections=[];sidebarLinks.forEach(a=>{const s=document.getElementById(a.dataset.sec);if(s)sections.push({el:s,link:a})});
