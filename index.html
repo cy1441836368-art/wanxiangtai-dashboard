@@ -573,6 +573,8 @@ $('filterInfo').textContent='当前筛选：'+pp.join(' \u00b7 ')}
 
 function ua(){uInfo();uK();uTbl();uDaily();uSeries();uTool();uT();uSt();uMt()}
 
+ua();
+
 // Scroll spy for sidebar
 const sidebarLinks=document.querySelectorAll('.sidebar a[data-sec]');
 const sections=[];sidebarLinks.forEach(a=>{const s=document.getElementById(a.dataset.sec);if(s)sections.push({el:s,link:a})});
