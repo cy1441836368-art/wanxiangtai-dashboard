@@ -456,29 +456,18 @@ $('stb').innerHTML=totalRow+rows.map(r=>'<tr><td>'+r.统计+'</td><td>'+f(r.花�
 let tSortCol='花费',tSortDir='desc';
 const TSORT_MAP={'场景名字':'场景名字','花费':'花费','COST%':'_costPct','费率':'_fee','销售金额':'销售金额','销售数量':'销售数量','CTR':'_ctr','CPC':'_cpc','直接ROI':'_dRoi','直接购物车数':'直接购物车数','直接加购成本':'_cartCost','直接成交笔数':'直接成交笔数','直接成交金额':'直接成交金额','总ROI':'_tRoi','总购物车数':'总购物车数','直接CVR':'_cvr','直接加购率':'_cartRate'};
 function sortTool(col){if(tSortCol===col){tSortDir=tSortDir==='desc'?'asc':'desc'}else{tSortCol=col;tSortDir='desc'}uTool()}
-function uTool(){const{s,e}=gr(),sv=msSeries.vals(),sz=msSize.vals(),gm=msModel.vals();
+function uTool(){const{s,e}=gr();
 
-// Build scene mapping from model_scene_daily
-const msd=D.model_scene_daily.filter(r=>r.日期str>=s&&r.日期str<=e);
-const ss={};msd.forEach(r=>{const k=r.日期str+'|'+r.型号;if(!ss[k])ss[k]=[];ss[k].push({scene:r.场景名字,spend:r.花费||0})});
-Object.values(ss).forEach(arr=>{const total=arr.reduce((a,r)=>a+r.spend,0);arr.forEach(r=>r.ratio=total?r.spend/total:1/arr.length)});
-
-// Filter model_daily by date/series/size/model
-let md=D.model_daily.filter(r=>r.日期str>=s&&r.日期str<=e);
-if(sv)md=md.filter(r=>sv.includes(r.统计));if(sz)md=md.filter(r=>sz.includes(r.尺寸));if(gm)md=md.filter(r=>gm.includes(r.型号));
-
-// Aggregate sku scenes from model_daily via scene mapping
+// Use scene_sku_daily directly for sku scenes (关键词/货品全站/人群)
+let skuData=D.scene_sku_daily.filter(r=>r.日期str>=s&&r.日期str<=e);
 const agg={};
-md.forEach(r=>{const k=r.日期str+'|'+r.型号;const scenes=ss[k]||[];
-scenes.forEach(({scene,ratio})=>{if(!agg[scene])agg[scene]={场景名字:scene,花费:0,展现量:0,点击量:0,直接成交笔数:0,直接成交金额:0,直接购物车数:0,总购物车数:0,总成交金额:0,销售金额:0,销售数量:0,_hasSales:true};
-const a=agg[scene];a.花费+=(r.花费||0)*ratio;a.展现量+=(r.展现量||0)*ratio;a.点击量+=(r.点击量||0)*ratio;a.直接成交笔数+=(r.直接成交笔数||0)*ratio;a.直接成交金额+=(r.直接成交金额||0)*ratio;a.直接购物车数+=(r.直接购物车数||0)*ratio;a.总购物车数+=(r.总购物车数||0)*ratio;a.总成交金额+=(r.总成交金额||0)*ratio;a.销售金额+=(r.销售金额||0)*ratio;a.销售数量+=(r.销售数量||0)*ratio})});
+skuData.forEach(r=>{const k=r.场景名字;if(!agg[k])agg[k]={场景名字:k,花费:0,展现量:0,点击量:0,直接成交笔数:0,直接成交金额:0,直接购物车数:0,总购物车数:0,总成交金额:0,销售金额:0,销售数量:0,_hasSales:true};
+const a=agg[k];a.花费+=r.花费||0;a.展现量+=r.展现量||0;a.点击量+=r.点击量||0;a.直接成交笔数+=r.直接成交笔数||0;a.直接成交金额+=r.直接成交金额||0;a.直接购物车数+=r.直接购物车数||0;a.总购物车数+=r.总购物车数||0;a.总成交金额+=r.总成交金额||0;a.销售金额+=r.销售金额||0;a.销售数量+=r.销售数量||0});
 
-// Add plan-only scenes (no series/size filter)
-// Plan-only scenes are already included via model_scene_daily above, no need to add again
-// Only add scenes NOT already in agg (safety)
+// Use scene_daily for plan-only scenes (超级直播/线索推广/超级短视频)
 let planData=D.scene_daily.filter(r=>r.日期str>=s&&r.日期str<=e);
-planData.forEach(r=>{const k=r.场景名字;if(agg[k])return;if(!agg[k])agg[k]={场景名字:k,花费:0,展现量:0,点击量:0,直接成交笔数:0,直接成交金额:0,直接购物车数:0,总购物车数:0,总成交金额:0,销售金额:0,销售数量:0,_hasSales:false};
-const a=agg[k];a.花费+=r.花费||0;a.展现量+=r.展现量||0;a.点击量+=r.点击量||0;a.直接成交笔数+=r.直接成交笔数||0;a.直接成交金额+=r.直接成交金额||0;a.直接购物车数+=r.直接购物车数||0;a.总购物车数+=r.总购物车数||0;a.总成交金额+=r.总成交金额||0});
+planData.forEach(r=>{const k=r.场景名字;if(agg[k])return;
+agg[k]={场景名字:k,花费:r.花费||0,展现量:r.展现量||0,点击量:r.点击量||0,直接成交笔数:r.直接成交笔数||0,直接成交金额:r.直接成交金额||0,直接购物车数:r.直接购物车数||0,总购物车数:r.总购物车数||0,总成交金额:r.总成交金额||0,销售金额:0,销售数量:0,_hasSales:false}});
 
 let rows=Object.values(agg).map(r=>{const sp=r.花费,im=r.展现量,cl=r.点击量,dA=r.直接成交金额,dC=r.直接购物车数,dO=r.直接成交笔数,tA=r.总成交金额,tC=r.总购物车数||0,sa=r.销售金额||0;
 return{...r,_costPct:0,_fee:sa?sp/sa:0,CTR:im?cl/im:0,_cvr:cl?dO/cl:0,_cartRate:cl?dC/cl:0,_cpc:cl?sp/cl:0,直接ROI:sp?dA/sp:0,直接加购成本:dC?sp/dC:0,_tRoi:sp?tA/sp:0}});
@@ -495,27 +484,23 @@ const tFee=tSa?ts/tSa:0,tCtr=tImp?tClk/tImp:0,tCvr=tClk?tDO/tClk:0,tCartRate=tCl
 const hp=(c,pv)=>{if(pv===0||pv==null)return '<span class="hp hp-flat">-</span>';const pct=(c-pv)/Math.abs(pv)*100;const cls=pct>0.01?'hp-up':pct<-0.01?'hp-dn':'hp-flat';return '<span class="hp '+cls+'">'+(pct>0?'+':'')+pct.toFixed(1)+'%</span>'};
 const hC=(v,h,p)=>'<td><div class="hb"><div class="mv">'+h+'</div>'+p+'</div></td>';
 
-// Previous period
-const uniqD=[...new Set(D.model_daily.map(r=>r.日期str))].filter(d=>d>=s&&d<=e).sort();
+// Previous period using same direct approach
+const uniqD=[...new Set(D.scene_sku_daily.map(r=>r.日期str))].filter(d=>d>=s&&d<=e).sort();
 const pLen=uniqD.length||1,psP=addDays(s,-pLen);
-let pMd=D.model_daily.filter(r=>r.日期str>=psP&&r.日期str<s);
-if(sv)pMd=pMd.filter(r=>sv.includes(r.统计));if(sz)pMd=pMd.filter(r=>sz.includes(r.尺寸));if(gm)pMd=pMd.filter(r=>gm.includes(r.型号));
-let pMsD=D.model_scene_daily.filter(r=>r.日期str>=psP&&r.日期str<s);
-const pSS={};pMsD.forEach(r=>{const k=r.日期str+'|'+r.型号;if(!pSS[k])pSS[k]=[];pSS[k].push({scene:r.场景名字,spend:r.花费||0})});
-Object.values(pSS).forEach(arr=>{const total=arr.reduce((a,r)=>a+r.spend,0);arr.forEach(r=>r.ratio=total?r.spend/total:1/arr.length)});
-const pAgg={};pMd.forEach(r=>{const k=r.日期str+'|'+r.型号;const scenes=pSS[k]||[];
-scenes.forEach(({scene,ratio})=>{if(!pAgg[scene])pAgg[scene]={花费:0,展现量:0,点击量:0,直接成交笔数:0,直接成交金额:0,直接购物车数:0,总购物车数:0,总成交金额:0,销售金额:0,销售数量:0};
-const a=pAgg[scene];a.花费+=(r.花费||0)*ratio;a.展现量+=(r.展现量||0)*ratio;a.点击量+=(r.点击量||0)*ratio;a.直接成交笔数+=(r.直接成交笔数||0)*ratio;a.直接成交金额+=(r.直接成交金额||0)*ratio;a.直接购物车数+=(r.直接购物车数||0)*ratio;a.总购物车数+=(r.总购物车数||0)*ratio;a.总成交金额+=(r.总成交金额||0)*ratio;a.销售金额+=(r.销售金额||0)*ratio;a.销售数量+=(r.销售数量||0)*ratio})});
+let pSku=D.scene_sku_daily.filter(r=>r.日期str>=psP&&r.日期str<s);
 let pPlan=D.scene_daily.filter(r=>r.日期str>=psP&&r.日期str<s);
-pPlan.forEach(r=>{const k=r.场景名字;if(pAgg[k])return;if(!pAgg[k])pAgg[k]={花费:0,展现量:0,点击量:0,直接成交笔数:0,直接成交金额:0,直接购物车数:0,总购物车数:0,总成交金额:0,销售金额:0,销售数量:0};
-const a=pAgg[k];a.花费+=r.花费||0;a.展现量+=r.展现量||0;a.点击量+=r.点击量||0;a.直接成交笔数+=r.直接成交笔数||0;a.直接成交金额+=r.直接成交金额||0;a.直接购物车数+=r.直接购物车数||0;a.总购物车数+=r.总购物车数||0;a.总成交金额+=r.总成交金额||0});
+const pAgg={};
+pSku.forEach(r=>{const k=r.场景名字;if(!pAgg[k])pAgg[k]={花费:0,展现量:0,点击量:0,直接成交笔数:0,直接成交金额:0,直接购物车数:0,总购物车数:0,总成交金额:0,销售金额:0,销售数量:0};
+const a=pAgg[k];a.花费+=r.花费||0;a.展现量+=r.展现量||0;a.点击量+=r.点击量||0;a.直接成交笔数+=r.直接成交笔数||0;a.直接成交金额+=r.直接成交金额||0;a.直接购物车数+=r.直接购物车数||0;a.总购物车数+=r.总购物车数||0;a.总成交金额+=r.总成交金额||0;a.销售金额+=r.销售金额||0;a.销售数量+=r.销售数量||0});
+pPlan.forEach(r=>{const k=r.场景名字;if(pAgg[k])return;
+pAgg[k]={花费:r.花费||0,展现量:r.展现量||0,点击量:r.点击量||0,直接成交笔数:r.直接成交笔数||0,直接成交金额:r.直接成交金额||0,直接购物车数:r.直接购物车数||0,总购物车数:r.总购物车数||0,总成交金额:r.总成交金额||0,销售金额:0,销售数量:0}});
 const pAll=Object.values(pAgg);const pts=pAll.reduce((a,r)=>a+r.花费,0),
 pImp=pAll.reduce((a,r)=>a+r.展现量,0),pClk=pAll.reduce((a,r)=>a+r.点击量,0),
 pDA=pAll.reduce((a,r)=>a+r.直接成交金额,0),pDC=pAll.reduce((a,r)=>a+r.直接购物车数,0),pDO=pAll.reduce((a,r)=>a+r.直接成交笔数,0),
 pTA=pAll.reduce((a,r)=>a+r.总成交金额,0),pTC=pAll.reduce((a,r)=>a+r.总购物车数||0,0),pSa=pAll.reduce((a,r)=>a+(r.销售金额||0),0),pSn=pAll.reduce((a,r)=>a+(r.销售数量||0),0);
 const pFee=pSa?pts/pSa:0,pCtr=pImp?pClk/pImp:0,pCvr=pClk?pDO/pClk:0,pCartRate=pClk?pDC/pClk:0,pCpc=pClk?pts/pClk:0,pDRoi=pts?pDA/pts:0,pCC=pDC?pts/pDC:0,pTRoi=pts?pTA/pts:0;
 
-$('ttb').innerHTML='<tr class="total-row"><td>\u5408\u8ba1</td>'+hC(f(ts),f(ts),hp(ts,pts))+'<td>100%</td>'+hC((tFee*100).toFixed(2)+'%',(tFee*100).toFixed(2)+'%',hp(tFee,pFee))+hC(f(tSa),f(tSa),hp(tSa,pSa))+hC(f(tSn),f(tSn),hp(tSn,pSn))+hC(p(tCtr),p(tCtr),hp(tCtr,pCtr))+hC((tCvr*100).toFixed(2)+'%',(tCvr*100).toFixed(2)+'%',hp(tCvr,pCvr))+hC((tCartRate*100).toFixed(2)+'%',(tCartRate*100).toFixed(2)+'%',hp(tCartRate,pCartRate))+hC(tCpc.toFixed(2),tCpc.toFixed(2),hp(tCpc,pCpc))+hC(tDRoi.toFixed(2),tDRoi.toFixed(2),hp(tDRoi,pDRoi))+hC(f(tDC),f(tDC),hp(tDC,pDC))+hC(f(tCC,2),f(tCC,2),hp(tCC,pCC))+hC(f(tDO),f(tDO),hp(tDO,pDO))+hC(f(tDA),f(tDA),hp(tDA,pDA))+hC(tTRoi.toFixed(2),tTRoi.toFixed(2),hp(tTRoi,pTRoi))+hC(f(tTC),f(tTC),hp(tTC,pTC))+'</tr>'
+$('ttb').innerHTML='<tr class="total-row"><td>合计</td>'+hC(f(ts),f(ts),hp(ts,pts))+'<td>100%</td>'+hC((tFee*100).toFixed(2)+'%',(tFee*100).toFixed(2)+'%',hp(tFee,pFee))+hC(f(tSa),f(tSa),hp(tSa,pSa))+hC(f(tSn),f(tSn),hp(tSn,pSn))+hC(p(tCtr),p(tCtr),hp(tCtr,pCtr))+hC((tCvr*100).toFixed(2)+'%',(tCvr*100).toFixed(2)+'%',hp(tCvr,pCvr))+hC((tCartRate*100).toFixed(2)+'%',(tCartRate*100).toFixed(2)+'%',hp(tCartRate,pCartRate))+hC(tCpc.toFixed(2),tCpc.toFixed(2),hp(tCpc,pCpc))+hC(tDRoi.toFixed(2),tDRoi.toFixed(2),hp(tDRoi,pDRoi))+hC(f(tDC),f(tDC),hp(tDC,pDC))+hC(f(tCC,2),f(tCC,2),hp(tCC,pCC))+hC(f(tDO),f(tDO),hp(tDO,pDO))+hC(f(tDA),f(tDA),hp(tDA,pDA))+hC(tTRoi.toFixed(2),tTRoi.toFixed(2),hp(tTRoi,pTRoi))+hC(f(tTC),f(tTC),hp(tTC,pTC))+'</tr>'
 +rows.map(r=>{
 const sp=r.花费,im=r.展现量,cl=r.点击量,dA=r.直接成交金额,dC=r.直接购物车数,dO=r.直接成交笔数,tA=r.总成交金额,tC=r.总购物车数||0,sa=r.销售金额||0;
 const cvr=cl?dO/cl:0,cartRate=cl?dC/cl:0,cpc=cl?sp/cl:0,dRoi=sp?dA/sp:0,cartCost=dC?sp/dC:0,tRoi=sp?tA/sp:0;
@@ -525,7 +510,6 @@ const saCell=hasSales?'<td>'+f(sa)+'</td>':'<td>-</td>';
 const snCell=hasSales?'<td>'+f(r.销售数量||0)+'</td>':'<td>-</td>';
 return '<tr><td>'+r.场景名字+'</td><td>'+f(sp)+'</td><td>'+(r._costPct*100).toFixed(1)+'%</td>'+feeCell+saCell+snCell
 +'<td>'+p(r.CTR)+'</td><td>'+(cvr*100).toFixed(2)+'%</td><td>'+(cartRate*100).toFixed(2)+'%</td><td>'+cpc.toFixed(2)+'</td><td>'+dRoi.toFixed(2)+'</td><td>'+f(dC)+'</td><td>'+f(cartCost,2)+'</td><td>'+f(dO)+'</td><td>'+f(dA)+'</td><td>'+tRoi.toFixed(2)+'</td><td>'+f(tC)+'</td></tr>'}).join('')}
-
 
 function uInfo(){const sv=msSeries.vals(),sz=msSize.vals(),gm=msModel.vals();let pp=[];
 pp.push(sv?sv.join(','):'全部系列');pp.push(sz?sz.join(','):'全部尺寸');pp.push(gm?gm.join(','):'全部型号');
